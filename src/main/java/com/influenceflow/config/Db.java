@@ -30,6 +30,13 @@ public final class Db {
 
     private static String getEnvOrThrow(String name) {
         String value = System.getenv(name);
+        if (value == null) {
+            throw new IllegalStateException("Environment variable " + name + " is not set");
+        }
+        value = value.trim();
+        if (value.isEmpty()) {
+            throw new IllegalStateException("Environment variable " + name + " is blank");
+        }
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("Environment variable " + name + " is not set");
         }

@@ -10,7 +10,7 @@ public final class RegexValidator {
     private static final Pattern TIKTOK_PATTERN = Pattern.compile("https?://(www\\.)?tiktok\\.com/@[A-Za-z0-9._]+/video/\\d+/?");
     private static final Pattern YOUTUBE_PATTERN = Pattern.compile("https?://(www\\.)?youtube\\.com/shorts/[A-Za-z0-9_-]+/?");
     private static final Pattern REDDIT_PATTERN = Pattern.compile("https?://(www\\.)?reddit\\.com/r/[A-Za-z0-9_]+/comments/[A-Za-z0-9]+/[A-Za-z0-9_]+/?");
-    private static final Pattern METRICS_PATTERN = Pattern.compile("(\\w+)=([0-9]{1,9})");
+    private static final Pattern METRICS_PATTERN = Pattern.compile("(\\w+)\\s*=\\s*([0-9]{1,9})");
 
     private RegexValidator() {
     }
@@ -31,14 +31,31 @@ public final class RegexValidator {
         }
         Matcher matcher = METRICS_PATTERN.matcher(input);
         Map<String, Integer> metrics = new HashMap<>();
-        int lastEnd = 0;
+        int cursor = 0;
         while (matcher.find()) {
+            if (!isSeparator(input.substring(cursor, matcher.start()))) {
+                throw new IllegalArgumentException("Metrics input has invalid format near: "
+                        + input.substring(cursor, matcher.start()).trim());
+            }
             metrics.put(matcher.group(1), Integer.parseInt(matcher.group(2)));
-            lastEnd = matcher.end();
+            cursor = matcher.end();
         }
-        if (metrics.isEmpty() || lastEnd != input.length()) {
+        if (metrics.isEmpty() || !isSeparator(input.substring(cursor))) {
             throw new IllegalArgumentException("Metrics input has invalid format: " + input);
         }
         return metrics;
+    }
+
+    private static boolean isSeparator(String fragment) {
+        if (fragment == null || fragment.isEmpty()) {
+            return true;
+        }
+        for (int i = 0; i < fragment.length(); i++) {
+            char ch = fragment.charAt(i);
+            if (!(Character.isWhitespace(ch) || ch == ',' || ch == ';')) {
+                return false;
+            }
+        }
+        return true;
     }
 }

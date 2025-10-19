@@ -77,13 +77,32 @@ public class SubmissionDao {
         }
     }
 
+    public boolean existsByTaskAndCreator(long taskId, long creatorId) {
+        String sql = "SELECT 1 FROM submission WHERE task_id = ? AND creator_id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, taskId);
+            ps.setLong(2, creatorId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new DaoException("Failed to check submission uniqueness", e);
+        }
+    }
+
     private Submission mapRow(ResultSet rs) throws SQLException {
         Submission submission = new Submission();
         submission.setId(rs.getLong("id"));
         submission.setTaskId(rs.getLong("task_id"));
         submission.setCreatorId(rs.getLong("creator_id"));
         submission.setUrl(rs.getString("url"));
-        submission.setStatus(SubmissionStatus.valueOf(rs.getString("status")));
+        String rawStatus = rs.getString("status");
+        try {
+            submission.setStatus(SubmissionStatus.fromDatabaseValue(rawStatus));
+        } catch (IllegalArgumentException ex) {
+            throw new DaoException("Unknown submission status value: " + rawStatus);
+        }
         submission.setSubmittedAt(rs.getTimestamp("submitted_at").toLocalDateTime());
         Timestamp reviewedAt = rs.getTimestamp("reviewed_at");
         submission.setReviewedAt(reviewedAt != null ? reviewedAt.toLocalDateTime() : null);

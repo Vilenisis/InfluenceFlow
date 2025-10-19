@@ -41,6 +41,22 @@ public class CreatorDao {
         }
     }
 
+    public Creator update(Creator creator) {
+        String sql = "UPDATE creator SET full_name = ?, email = ?, niche = ?, platform_handle = ? WHERE id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, creator.getFullName());
+            ps.setString(2, creator.getEmail());
+            ps.setString(3, creator.getNiche());
+            ps.setString(4, creator.getPlatformHandle());
+            ps.setLong(5, creator.getId());
+            ps.executeUpdate();
+            return creator;
+        } catch (SQLException e) {
+            throw new DaoException("Failed to update creator", e);
+        }
+    }
+
     public Optional<Creator> findByTgUserId(long tgUserId) {
         String sql = "SELECT id, tg_user_id, full_name, email, niche, platform_handle FROM creator WHERE tg_user_id = ?";
         try (Connection connection = dataSource.getConnection();
@@ -54,6 +70,35 @@ public class CreatorDao {
             return Optional.empty();
         } catch (SQLException e) {
             throw new DaoException("Failed to query creator", e);
+        }
+    }
+
+    public Optional<Creator> findById(long id) {
+        String sql = "SELECT id, tg_user_id, full_name, email, niche, platform_handle FROM creator WHERE id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            throw new DaoException("Failed to query creator by id", e);
+        }
+    }
+
+    public boolean existsById(long id) {
+        String sql = "SELECT 1 FROM creator WHERE id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new DaoException("Failed to check creator existence", e);
         }
     }
 

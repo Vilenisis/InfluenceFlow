@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class TgUser {
     private long id;
+    private long telegramId;
     private String username;
     private boolean admin;
     private LocalDateTime createdAt;
@@ -11,8 +12,9 @@ public class TgUser {
     public TgUser() {
     }
 
-    public TgUser(long id, String username, boolean admin, LocalDateTime createdAt) {
+    public TgUser(long id, long telegramId, String username, boolean admin, LocalDateTime createdAt) {
         this.id = id;
+        this.telegramId = telegramId;
         this.username = username;
         this.admin = admin;
         this.createdAt = createdAt;
@@ -24,6 +26,14 @@ public class TgUser {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public long getTelegramId() {
+        return telegramId;
+    }
+
+    public void setTelegramId(long telegramId) {
+        this.telegramId = telegramId;
     }
 
     public String getUsername() {

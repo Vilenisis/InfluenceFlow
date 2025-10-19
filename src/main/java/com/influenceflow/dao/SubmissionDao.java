@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,7 @@ public class SubmissionDao {
             ps.setLong(1, submission.getTaskId());
             ps.setLong(2, submission.getCreatorId());
             ps.setString(3, submission.getUrl());
-            ps.setString(4, submission.getStatus().name());
+            ps.setObject(4, submission.getStatus().name(), Types.OTHER);
             ps.setTimestamp(5, Timestamp.valueOf(submission.getSubmittedAt()));
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -51,7 +52,7 @@ public class SubmissionDao {
                 + "ORDER BY submitted_at";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, status.name());
+            ps.setObject(1, status.name(), Types.OTHER);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Submission> submissions = new ArrayList<>();
                 while (rs.next()) {
@@ -68,7 +69,7 @@ public class SubmissionDao {
         String sql = "UPDATE submission SET status = ?, reviewed_at = ? WHERE id = ?";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, status.name());
+            ps.setObject(1, status.name(), Types.OTHER);
             ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
             ps.setLong(3, submissionId);
             ps.executeUpdate();

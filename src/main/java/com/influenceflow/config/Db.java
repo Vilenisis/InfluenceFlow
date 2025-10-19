@@ -37,6 +37,9 @@ public final class Db {
         if (value.isEmpty()) {
             throw new IllegalStateException("Environment variable " + name + " is blank");
         }
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Environment variable " + name + " is not set");
+        }
         return value;
     }
 }

@@ -24,12 +24,16 @@ public class TgUserDao {
     }
 
     public TgUser save(TgUser user) {
-        String sql = "INSERT INTO tg_user (username, is_admin, created_at) VALUES (?, ?, ?) RETURNING id";
+        if (user.getCreatedAt() == null) {
+            user.setCreatedAt(LocalDateTime.now());
+        }
+        String sql = "INSERT INTO tg_user (telegram_id, username, is_admin, created_at) VALUES (?, ?, ?, ?) RETURNING id";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, user.getUsername());
-            ps.setBoolean(2, user.isAdmin());
-            ps.setTimestamp(3, Timestamp.valueOf(user.getCreatedAt()));
+            ps.setLong(1, user.getTelegramId());
+            ps.setString(2, user.getUsername());
+            ps.setBoolean(3, user.isAdmin());
+            ps.setTimestamp(4, Timestamp.valueOf(user.getCreatedAt()));
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     user.setId(rs.getLong("id"));
@@ -42,7 +46,7 @@ public class TgUserDao {
     }
 
     public Optional<TgUser> findByUsername(String username) {
-        String sql = "SELECT id, username, is_admin, created_at FROM tg_user WHERE username = ?";
+        String sql = "SELECT id, telegram_id, username, is_admin, created_at FROM tg_user WHERE username = ?";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -57,8 +61,24 @@ public class TgUserDao {
         }
     }
 
+    public Optional<TgUser> findByTelegramId(long telegramId) {
+        String sql = "SELECT id, telegram_id, username, is_admin, created_at FROM tg_user WHERE telegram_id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, telegramId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            throw new DaoException("Failed to query tg_user by telegram id", e);
+        }
+    }
+
     public Optional<TgUser> findById(long id) {
-        String sql = "SELECT id, username, is_admin, created_at FROM tg_user WHERE id = ?";
+        String sql = "SELECT id, telegram_id, username, is_admin, created_at FROM tg_user WHERE id = ?";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setLong(1, id);
@@ -73,11 +93,40 @@ public class TgUserDao {
         }
     }
 
+    public void updateUsername(long id, String username) {
+        String sql = "UPDATE tg_user SET username = ? WHERE id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setLong(2, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new DaoException("Failed to update tg_user username", e);
+        }
+    }
+
+    public boolean isAdminByTelegramId(long telegramId) {
+        String sql = "SELECT is_admin FROM tg_user WHERE telegram_id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, telegramId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBoolean("is_admin");
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw new DaoException("Failed to check admin flag for tg_user", e);
+        }
+    }
+
     private TgUser mapRow(ResultSet rs) throws SQLException {
         long id = rs.getLong("id");
+        long telegramId = rs.getLong("telegram_id");
         String username = rs.getString("username");
         boolean isAdmin = rs.getBoolean("is_admin");
         LocalDateTime createdAt = rs.getTimestamp("created_at").toLocalDateTime();
-        return new TgUser(id, username, isAdmin, createdAt);
+        return new TgUser(id, telegramId, username, isAdmin, createdAt);
     }
 }

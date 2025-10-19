@@ -1,10 +1,10 @@
-INSERT INTO tg_user (username, is_admin) VALUES
-    ('admin_manager', TRUE),
-    ('creator_anna', FALSE),
-    ('creator_oleg', FALSE),
-    ('creator_mila', FALSE),
-    ('creator_dan', FALSE),
-    ('creator_lena', FALSE);
+INSERT INTO tg_user (telegram_id, username, is_admin) VALUES
+    (1001, 'admin_manager', TRUE),
+    (2001, 'creator_anna', FALSE),
+    (2002, 'creator_oleg', FALSE),
+    (2003, 'creator_mila', FALSE),
+    (2004, 'creator_dan', FALSE),
+    (2005, 'creator_lena', FALSE);
 
 INSERT INTO creator (tg_user_id, full_name, email, niche, platform_handle) VALUES
     (2, 'Анна Петрова', 'anna@example.com', 'lifestyle', '@annagram'),

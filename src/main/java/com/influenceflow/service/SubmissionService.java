@@ -1,7 +1,9 @@
 package com.influenceflow.service;
 
+import com.influenceflow.dao.CreatorDao;
 import com.influenceflow.dao.PostMetricDao;
 import com.influenceflow.dao.SubmissionDao;
+import com.influenceflow.dao.TaskDao;
 import com.influenceflow.model.PostMetric;
 import com.influenceflow.model.Submission;
 import com.influenceflow.model.SubmissionStatus;
@@ -14,15 +16,28 @@ import java.util.Map;
 public class SubmissionService {
     private final SubmissionDao submissionDao;
     private final PostMetricDao postMetricDao;
+    private final TaskDao taskDao;
+    private final CreatorDao creatorDao;
 
-    public SubmissionService(SubmissionDao submissionDao, PostMetricDao postMetricDao) {
+    public SubmissionService(SubmissionDao submissionDao, PostMetricDao postMetricDao, TaskDao taskDao, CreatorDao creatorDao) {
         this.submissionDao = submissionDao;
         this.postMetricDao = postMetricDao;
+        this.taskDao = taskDao;
+        this.creatorDao = creatorDao;
     }
 
     public Submission submitWork(long taskId, long creatorId, String url) {
         if (!RegexValidator.isValidSubmissionUrl(url)) {
             throw new IllegalArgumentException("URL не соответствует поддерживаемым платформам");
+        }
+        if (!taskDao.existsById(taskId)) {
+            throw new IllegalArgumentException("Задание с идентификатором " + taskId + " не найдено");
+        }
+        if (!creatorDao.existsById(creatorId)) {
+            throw new IllegalArgumentException("Профиль креатора не найден. Повторите регистрацию командой /start");
+        }
+        if (submissionDao.existsByTaskAndCreator(taskId, creatorId)) {
+            throw new IllegalStateException("Вы уже отправили работу по этой задаче");
         }
         Submission submission = new Submission();
         submission.setTaskId(taskId);

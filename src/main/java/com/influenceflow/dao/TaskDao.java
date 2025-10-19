@@ -57,6 +57,19 @@ public class TaskDao {
         }
     }
 
+    public boolean existsById(long taskId) {
+        String sql = "SELECT 1 FROM task WHERE id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, taskId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new DaoException("Failed to check task existence", e);
+        }
+    }
+
     public Task save(Task task) {
         String sql = "INSERT INTO task (campaign_id, title, brief, platform, payout_amount, deadline) "
                 + "VALUES (?, ?, ?, ?, ?, ?) RETURNING id";

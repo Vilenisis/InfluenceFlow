@@ -51,23 +51,24 @@ public class InfluenceFlowBot extends TelegramLongPollingBot {
         Message message = update.getMessage();
         String text = message.getText().trim();
         long chatId = message.getChatId();
+        Long telegramUserId = message.getFrom() != null ? message.getFrom().getId() : null;
         String username = message.getFrom() != null ? message.getFrom().getUserName() : null;
 
         try {
             if (text.startsWith("/start")) {
-                handleStart(chatId, username, text);
+                handleStart(chatId, telegramUserId, username, text);
             } else if (text.startsWith("/campaigns")) {
                 handleCampaigns(chatId);
             } else if (text.startsWith("/submit")) {
-                handleSubmit(chatId, username, text);
+                handleSubmit(chatId, telegramUserId, text);
             } else if (text.startsWith("/mymetrics")) {
                 handleMetrics(chatId, text);
             } else if (text.startsWith("/moderate")) {
-                handleModerationList(chatId, username);
+                handleModerationList(chatId, telegramUserId, username);
             } else if (text.startsWith("/approve")) {
-                handleModerationAction(chatId, username, text, SubmissionStatus.APPROVED);
+                handleModerationAction(chatId, telegramUserId, username, text, SubmissionStatus.APPROVED);
             } else if (text.startsWith("/reject")) {
-                handleModerationAction(chatId, username, text, SubmissionStatus.REJECTED);
+                handleModerationAction(chatId, telegramUserId, username, text, SubmissionStatus.REJECTED);
             } else {
                 sendText(chatId, "Неизвестная команда. Доступные команды: /start, /campaigns, /submit, /mymetrics");
             }
@@ -76,13 +77,17 @@ public class InfluenceFlowBot extends TelegramLongPollingBot {
         }
     }
 
-    private void handleStart(long chatId, String username, String text) {
+    private void handleStart(long chatId, Long telegramUserId, String username, String text) {
+        if (telegramUserId == null) {
+            sendText(chatId, "Не удалось определить ваш Telegram ID. Попробуйте позже.");
+            return;
+        }
         String[] parts = text.replaceFirst("/start", "").trim().split(";");
         if (parts.length < 4) {
             sendText(chatId, "Формат команды: /start ФИО;email;ниша;@handle");
             return;
         }
-        Creator creator = creatorService.registerCreator(username, parts[0].trim(), parts[1].trim(),
+        Creator creator = creatorService.registerCreator(telegramUserId, username, parts[0].trim(), parts[1].trim(),
                 parts[2].trim(), parts[3].trim());
         sendText(chatId, "Регистрация успешно завершена. Ваш идентификатор: " + creator.getId());
     }
@@ -99,7 +104,11 @@ public class InfluenceFlowBot extends TelegramLongPollingBot {
         sendText(chatId, response);
     }
 
-    private void handleSubmit(long chatId, String username, String text) {
+    private void handleSubmit(long chatId, Long telegramUserId, String text) {
+        if (telegramUserId == null) {
+            sendText(chatId, "Не удалось определить ваш Telegram ID. Попробуйте позже.");
+            return;
+        }
         String[] parts = text.split(" ");
         if (parts.length < 3) {
             sendText(chatId, "Формат команды: /submit taskId URL");
@@ -107,7 +116,7 @@ public class InfluenceFlowBot extends TelegramLongPollingBot {
         }
         long taskId = Long.parseLong(parts[1]);
         String url = parts[2];
-        Creator creator = creatorService.findByUsername(username)
+        Creator creator = creatorService.findByTelegramId(telegramUserId)
                 .orElseThrow(() -> new IllegalStateException("Сначала выполните /start"));
         Submission submission = submissionService.submitWork(taskId, creator.getId(), url);
         sendText(chatId, "Сдача отправлена с номером " + submission.getId());
@@ -125,8 +134,8 @@ public class InfluenceFlowBot extends TelegramLongPollingBot {
         sendText(chatId, "Метрики сохранены для сдачи " + submissionId);
     }
 
-    private void handleModerationList(long chatId, String username) {
-        if (!isAdmin(username)) {
+    private void handleModerationList(long chatId, Long telegramUserId, String username) {
+        if (!isAdmin(telegramUserId, username)) {
             sendText(chatId, "Недостаточно прав");
             return;
         }
@@ -141,8 +150,8 @@ public class InfluenceFlowBot extends TelegramLongPollingBot {
         sendText(chatId, body + "\n\nДля утверждения: /approve ID, для отклонения: /reject ID");
     }
 
-    private void handleModerationAction(long chatId, String username, String text, SubmissionStatus status) {
-        if (!isAdmin(username)) {
+    private void handleModerationAction(long chatId, Long telegramUserId, String username, String text, SubmissionStatus status) {
+        if (!isAdmin(telegramUserId, username)) {
             sendText(chatId, "Недостаточно прав");
             return;
         }
@@ -156,9 +165,34 @@ public class InfluenceFlowBot extends TelegramLongPollingBot {
         sendText(chatId, "Статус обновлён: " + status);
     }
 
-    private boolean isAdmin(String username) {
-        String admin = System.getenv("BOT_ADMIN");
-        return admin != null && username != null && admin.equalsIgnoreCase(username);
+    private boolean isAdmin(Long telegramUserId, String username) {
+        if (telegramUserId != null && creatorService.isAdmin(telegramUserId)) {
+            return true;
+        }
+        String adminEnv = System.getenv("BOT_ADMIN");
+        if (adminEnv == null || adminEnv.isBlank()) {
+            return false;
+        }
+        String[] tokens = adminEnv.split(",");
+        for (String token : tokens) {
+            String trimmed = token.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (telegramUserId != null) {
+                try {
+                    if (telegramUserId == Long.parseLong(trimmed)) {
+                        return true;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // not a numeric id, fall back to username comparison
+                }
+            }
+            if (username != null && trimmed.equalsIgnoreCase(username)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void sendText(long chatId, String text) {

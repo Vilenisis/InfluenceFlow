@@ -28,7 +28,7 @@ public final class InfluenceFlowApplication {
 
         CreatorService creatorService = new CreatorService(tgUserDao, creatorDao);
         CampaignService campaignService = new CampaignService(campaignDao, taskDao);
-        SubmissionService submissionService = new SubmissionService(submissionDao, postMetricDao);
+        SubmissionService submissionService = new SubmissionService(submissionDao, postMetricDao, taskDao, creatorDao);
 
         InfluenceFlowBot bot = new InfluenceFlowBot(creatorService, campaignService, submissionService);
         TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);

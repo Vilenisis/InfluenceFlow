@@ -1,6 +1,7 @@
 CREATE TABLE tg_user (
     id BIGSERIAL PRIMARY KEY,
-    username VARCHAR(64) NOT NULL UNIQUE,
+    telegram_id BIGINT NOT NULL UNIQUE,
+    username VARCHAR(64) UNIQUE,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

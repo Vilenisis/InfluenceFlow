@@ -119,6 +119,36 @@ ER-диаграмма: сущности и связи таблиц (1-N, N-1).
 
 Диаграмма классов Java-приложения: основные DAO, сервисы, модели.
 
+## Реализация проекта
+
+Репозиторий содержит рабочий каркас Telegram-бота на Java 17 с доступом к PostgreSQL через JDBC. Основные компоненты расположены в `src/main/java/com/influenceflow/` и разделены на пакеты `bot`, `config`, `dao`, `model`, `service`, `util`.
+
+* `InfluenceFlowBot` обрабатывает пользовательские команды `/start`, `/campaigns`, `/submit`, `/mymetrics`, а также административные `/moderate`, `/approve`, `/reject`.
+* Сервисы (`CreatorService`, `CampaignService`, `SubmissionService`, `PayoutService`) инкапсулируют бизнес-логику регистрации, выдачи заданий, модерации сдач и формирования выплат.
+* DAO-слой реализует CRUD-операции через чистый JDBC, конфигурация подключения задаётся в `config/Db.java` переменными окружения `DB_URL`, `DB_USER`, `DB_PASS`.
+* В `src/main/resources/db/` размещены SQL-скрипты `schema.sql` и `data.sql` с полной схемой из 8 таблиц и тестовыми данными (не менее 5 записей в каждой таблице).
+* Класс `RegexValidator` обеспечивает проверку ссылок Instagram/TikTok/YouTube/Reddit и парсинг метрик в формате `views=123 likes=45 comments=6`; для него добавлены модульные тесты (`RegexValidatorTest`).
+
+### Сборка и запуск
+
+```bash
+mvn package
+java -jar target/influenceflow-1.0.0.jar
+```
+
+Перед запуском задайте переменные окружения: `DB_URL`, `DB_USER`, `DB_PASS`, `BOT_TOKEN`, `BOT_USERNAME`, `BOT_ADMIN`.
+
+Для развёртывания схемы выполните:
+
+```bash
+psql "$DB_URL" -f src/main/resources/db/schema.sql
+psql "$DB_URL" -f src/main/resources/db/data.sql
+```
+
+### Тестирование
+
+Запуск модульных тестов выполняется командой `mvn test`.
+
 7. Тестирование
 
 Юнит-тесты (JUnit):
